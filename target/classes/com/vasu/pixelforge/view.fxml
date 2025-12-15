@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" style="-fx-background-color: #2b2b2b;">
+    <left>
+        <VBox spacing="15" alignment="TOP_CENTER" style="-fx-padding: 20;">
+            <Button text="Upload" onAction="#handleSelectImage" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold;"/>
+            
+            <Label text="Resolution" style="-fx-text-fill: white;"/>
+            <Slider fx:id="resolutionSlider" min="50" max="300" value="100" showTickLabels="true" showTickMarks="true"/>
+            
+            <Label fx:id="statusLabel" text="Ready" style="-fx-text-fill: #aaaaaa;" wrapText="true" maxWidth="150"/>
+        </VBox>
+    </left>
+    <center>
+        <TextArea fx:id="asciiTextArea" editable="false" style="-fx-control-inner-background: black; -fx-text-fill: #00ff00; -fx-font-family: 'Monospaced';">
+            <font>
+                <Font name="Monospaced" size="8"/>
+            </font>
+        </TextArea>
+    </center>
+</BorderPane>
