@@ -1,0 +1,93 @@
+.root {
+    -fx-base: #1e1e1e;
+    -fx-background-color: #121212;
+}
+
+.sidebar {
+    -fx-background-color: linear-gradient(to bottom, #1e1e1e, #121212);
+    -fx-padding: 30px;
+    -fx-border-color: transparent #2a2a2a transparent transparent;
+    -fx-border-width: 0 1 0 0;
+}
+
+.button {
+    -fx-background-radius: 8px;
+    -fx-padding: 10px 20px;
+    -fx-font-size: 14px;
+    -fx-cursor: hand;
+    -fx-transition: all 0.3s ease;
+}
+
+.upload-button {
+    -fx-background-color: #4CAF50;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.upload-button:hover {
+    -fx-background-color: #45a049;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+.download-button {
+    -fx-background-color: #2196F3;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.download-button:hover {
+    -fx-background-color: #1e88e5;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+.label-title {
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 10 0;
+}
+
+.label-sub {
+    -fx-text-fill: #888888;
+    -fx-font-size: 12px;
+}
+
+.slider .track {
+    -fx-background-color: #333333;
+    -fx-background-radius: 5px;
+}
+
+.slider .thumb {
+    -fx-background-color: #2196F3;
+}
+
+.check-box {
+    -fx-text-fill: #cccccc;
+}
+
+.check-box .box {
+    -fx-background-color: #333333;
+    -fx-background-radius: 3px;
+}
+
+.check-box:selected .mark {
+    -fx-background-color: white;
+}
+
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-pane .viewport {
+    -fx-background-color: transparent;
+}
+
+.loading-label {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}

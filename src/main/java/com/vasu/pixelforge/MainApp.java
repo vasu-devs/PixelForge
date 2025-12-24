@@ -1,24 +1,31 @@
 package com.vasu.pixelforge;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
+import javafx.scene.layout.VBox;
 import javafx.scene.control.Slider;
-import javafx.scene.control.TextArea;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.image.WritableImage;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import javafx.embed.swing.SwingFXUtils;
 
 import javax.imageio.ImageIO;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 public class MainApp extends Application {
 
@@ -26,21 +33,54 @@ public class MainApp extends Application {
     private Label statusLabel;
 
     @FXML
-    private TextArea asciiTextArea;
+    private Canvas asciiCanvas;
+
+    @FXML
+    private CheckBox colorModeCheckBox;
 
     @FXML
     private Slider resolutionSlider;
 
+    @FXML
+    private VBox loadingOverlay;
+
+    @FXML
+    private javafx.scene.control.ScrollPane scrollPane;
+
     private AsciiEngine asciiEngine = new AsciiEngine();
     private Stage primaryStage;
     private File currentSelectedFile;
+    private AsciiPixel[][] currentPixels;
+    private Timeline debounceTimeline;
+    private double originalImageWidth;
+    private double originalImageHeight;
 
     @FXML
     public void initialize() {
-        resolutionSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
+        debounceTimeline = new Timeline(new KeyFrame(Duration.millis(300), e -> {
             if (currentSelectedFile != null) {
                 processImage(currentSelectedFile);
             }
+        }));
+        debounceTimeline.setCycleCount(1);
+
+        resolutionSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
+            debounceTimeline.stop();
+            debounceTimeline.playFromStart();
+        });
+
+        colorModeCheckBox.selectedProperty().addListener((observable, oldValue, newValue) -> {
+            if (currentPixels != null) {
+                renderCanvas(currentPixels, false);
+            }
+        });
+
+        // Add resize listeners to update the UI view
+        scrollPane.widthProperty().addListener((obs, oldVal, newVal) -> {
+            if (currentPixels != null) renderCanvas(currentPixels, false);
+        });
+        scrollPane.heightProperty().addListener((obs, oldVal, newVal) -> {
+            if (currentPixels != null) renderCanvas(currentPixels, false);
         });
     }
 
@@ -51,8 +91,8 @@ public class MainApp extends Application {
         loader.setController(this);
 
         Parent root = loader.load();
-        Scene scene = new Scene(root, 1000, 800); // Increased size for better view
-        primaryStage.setTitle("PixelForge Studio");
+        Scene scene = new Scene(root, 1200, 900); // Larger default size
+        primaryStage.setTitle("PixelForge Studio - Pro v2.0");
         primaryStage.setScene(scene);
         primaryStage.show();
     }
@@ -66,51 +106,144 @@ public class MainApp extends Application {
         File selectedFile = fileChooser.showOpenDialog(primaryStage);
         if (selectedFile != null) {
             this.currentSelectedFile = selectedFile;
-            processImage(selectedFile);
+            try {
+                // Pre-load image to get original dimensions
+                javafx.scene.image.Image img = new javafx.scene.image.Image(selectedFile.toURI().toString());
+                this.originalImageWidth = img.getWidth();
+                this.originalImageHeight = img.getHeight();
+                processImage(selectedFile);
+            } catch (Exception e) {
+                statusLabel.setText("Failed to load image metadata");
+            }
         }
     }
 
     private void processImage(File file) {
         statusLabel.setText("Processing: " + file.getName());
-        try {
-            int width = (int) resolutionSlider.getValue();
-            String asciiArt = asciiEngine.convert(file, width);
-            asciiTextArea.setText(asciiArt);
-            statusLabel.setText("Done");
-        } catch (IOException e) {
-            statusLabel.setText("Error: " + e.getMessage());
-            e.printStackTrace();
+        loadingOverlay.setVisible(true);
+
+        Task<AsciiPixel[][]> task = new Task<>() {
+            @Override
+            protected AsciiPixel[][] call() throws Exception {
+                int width = (int) resolutionSlider.getValue();
+                return asciiEngine.convertToPixels(file, width);
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            this.currentPixels = task.getValue();
+            renderCanvas(currentPixels, false);
+            loadingOverlay.setVisible(false);
+            statusLabel.setText("System Idle");
+        });
+
+        task.setOnFailed(e -> {
+            loadingOverlay.setVisible(false);
+            statusLabel.setText("Error: " + task.getException().getMessage());
+            task.getException().printStackTrace();
+        });
+
+        new Thread(task).start();
+    }
+
+    /**
+     * Renders the ASCII art to the canvas.
+     * @param pixels The ASCII pixels to render.
+     * @param forExport If true, it renders at original resolution. If false, it fits the window.
+     */
+    private void renderCanvas(AsciiPixel[][] pixels, boolean forExport) {
+        if (pixels == null || pixels.length == 0) return;
+
+        int rows = pixels.length;
+        int cols = pixels[0].length;
+
+        double targetWidth, targetHeight;
+
+        if (forExport) {
+            targetWidth = originalImageWidth;
+            targetHeight = originalImageHeight;
+        } else {
+            // Adaptive View: Subtract small margin to avoid scrollbars
+            targetWidth = scrollPane.getViewportBounds().getWidth() - 5;
+            targetHeight = scrollPane.getViewportBounds().getHeight() - 5;
+            
+            // Maintain aspect ratio of original image
+            double imgAspect = originalImageWidth / originalImageHeight;
+            double targetAspect = targetWidth / targetHeight;
+            
+            if (targetAspect > imgAspect) {
+                targetWidth = targetHeight * imgAspect;
+            } else {
+                targetHeight = targetWidth / imgAspect;
+            }
+        }
+
+        Canvas renderingTarget;
+        if (forExport) {
+            renderingTarget = new Canvas(targetWidth, targetHeight);
+        } else {
+            renderingTarget = asciiCanvas;
+            renderingTarget.setWidth(targetWidth);
+            renderingTarget.setHeight(targetHeight);
+        }
+
+        double charWidth = targetWidth / cols;
+        double charHeight = targetHeight / rows;
+
+        GraphicsContext gc = renderingTarget.getGraphicsContext2D();
+        gc.setFill(Color.BLACK);
+        gc.fillRect(0, 0, targetWidth, targetHeight);
+
+        // Scale font to fit perfectly
+        gc.setFont(Font.font("Monospaced", charHeight)); 
+        
+        boolean colorMode = colorModeCheckBox.isSelected();
+
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < cols; x++) {
+                AsciiPixel pixel = pixels[y][x];
+                if (colorMode) {
+                    gc.setFill(pixel.getColor());
+                } else {
+                    gc.setFill(Color.web("#00ff00"));
+                }
+                gc.fillText(String.valueOf(pixel.getCharacter()), x * charWidth, (y + 1) * charHeight - 2);
+            }
+        }
+        
+        if (forExport) {
+            // This case handles the download snapshotting logic
+            this.lastExportedCanvas = renderingTarget;
         }
     }
 
+    private Canvas lastExportedCanvas;
+
     @FXML
     private void handleDownload() {
-        if (asciiTextArea.getText().isEmpty()) {
+        if (currentPixels == null) {
             statusLabel.setText("Nothing to download!");
             return;
         }
 
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Save ASCII Art as Image");
+        fileChooser.setTitle("Save Full-Res ASCII Art");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG Files", "*.png"));
-        fileChooser.setInitialFileName("pixel_forge_art.png");
+        fileChooser.setInitialFileName("pixel_forge_pro_export.png");
 
         File file = fileChooser.showSaveDialog(primaryStage);
         if (file != null) {
             try {
-                // Capture the TextArea content as an image
-                // To ensure the whole text is captured, we might need to adjust the TextArea
-                // settings
-                // snapshot() usually only captures the visible area.
-                // However, for ASCII art, a snapshot of the node is the most direct way in
-                // JavaFX.
-                WritableImage snapshot = asciiTextArea.snapshot(new SnapshotParameters(), null);
-
-                // Convert to BufferedImage and Save
+                statusLabel.setText("Rendering high-res export...");
+                renderCanvas(currentPixels, true); // Renders to lastExportedCanvas
+                
+                SnapshotParameters params = new SnapshotParameters();
+                params.setFill(Color.BLACK);
+                WritableImage snapshot = lastExportedCanvas.snapshot(params, null);
                 ImageIO.write(SwingFXUtils.fromFXImage(snapshot, null), "png", file);
-                statusLabel.setText("Saved as PNG: " + file.getName());
+                statusLabel.setText("Exported (Full Res): " + file.getName());
             } catch (IOException e) {
-                statusLabel.setText("Error saving PNG: " + e.getMessage());
+                statusLabel.setText("Export Failed: " + e.getMessage());
                 e.printStackTrace();
             }
         }
