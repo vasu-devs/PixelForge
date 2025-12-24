@@ -13,6 +13,7 @@
     <left>
         <VBox spacing="15" alignment="TOP_CENTER" style="-fx-padding: 20;">
             <Button text="Upload" onAction="#handleSelectImage" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold;"/>
+            <Button text="Download" onAction="#handleDownload" style="-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-weight: bold;"/>
             
             <Label text="Resolution" style="-fx-text-fill: white;"/>
             <Slider fx:id="resolutionSlider" min="50" max="300" value="100" showTickLabels="true" showTickMarks="true"/>

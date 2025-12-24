@@ -13,6 +13,7 @@
 - **Aspect Ratio Correction**: Automatically adjusts for the non-square nature of terminal fonts.
 - **Matrix Theme**: Immersive dark mode with neon green text.
 - **Adjustable Resolution**: Control the output detail with a real-time slider.
+- **Download Art**: Save your ASCII creations as high-quality `.png` files for sharing.
 - **Cross-Platform**: Runs anywhere Java is supported.
 
 ## 🛠️ Tech Stack
@@ -42,7 +43,7 @@
    mvn clean package
    ```
 
-## 🏃 Usage
+## 跑 Usage
 
 ### Running with Maven
 You can run the application directly using the JavaFX Maven plugin:
@@ -58,8 +59,9 @@ java -jar target/pixelforge-1.0-SNAPSHOT.jar
 
 ### How to Use
 1. Click the **Upload** button to select an image (JPG, PNG, BMP, GIF).
-2. Use the **Resolution** slider to adjust the detail level.
-3. View the generated ASCII art in the main display area.
+2. Use the **Resolution** slider to adjust the detail level in real-time.
+3. Click the **Download** button to save your masterpiece as a PNG image.
+4. View the generated ASCII art in the main display area.
 
 ## 🤝 Contributing
 
